@@ -199,7 +199,7 @@ class MailSender
             }
 
             $mail->isHTML(true);                                  
-            $mail->Subject = sprintf("[테스트 메일] %d년 %d월 %d일 아침 점검 보고", date("Y"), date("m"), date("d"));
+            $mail->Subject = sprintf("%d년 %d월 %d일 아침 점검 보고", date("Y"), date("m"), date("d"));
             $mail->Body    = $this->body;
             
             $mail->send();
