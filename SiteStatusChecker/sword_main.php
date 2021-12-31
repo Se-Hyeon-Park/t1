@@ -31,17 +31,17 @@ class SiteStatusChecker
 
     public function sendNotification()
     {   
-        //TEMP
         foreach($this->notifier as $key => $obj)
         {
             if(get_class($this->notifier[$key]) == MailSender::class)
             {
                 $this->notifier[$key]->sendNotiEmail();
             }
-            if(get_class($this->notifier[$key]) == WebhookSender::class)
-            {
-                $this->notifier[$key]->sendNotiWebhook();
-            }
+            // webhook 통지 기능 생략
+            // if(get_class($this->notifier[$key]) == WebhookSender::class)
+            // {
+            //     $this->notifier[$key]->sendNotiWebhook();
+            // }
         }
     }
 
@@ -121,9 +121,6 @@ class SiteStatusChecker
         //결과 메일 통지
         $msender = new MailSender();
         $msender->loadNotiEmail();
-        //TESTING
-        $msender->setNotiEmail("sehyeon.park22@ptbwa.com");
-        $msender->removeNotiEmail("sehyeon.park22@ptbwa.com");
         if($msender->getNotiEmailCount() == 0)
         {
             $msender->setNotiEmail("ict@ptbwa.com");
@@ -131,19 +128,16 @@ class SiteStatusChecker
         $msender->setEmailBody(implode('<br>', $result));
         $this->setNotifier($msender);
 
-        $wsender = new WebhookSender();
-        $wsender->loadWebhookUrl();
-        if($wsender->getWebhookCount() == 0)
-        {   
-            // TEST WEBHOOK
-            $webhookUrl = "https://ptbwa.webhook.office.com/webhookb2/8aa8b3b4-8d47-42d2-b104-2ca126f437a3@b328136c-b0be-47fc-bacc-33f01a84367b/IncomingWebhook/620318905ba74747be62bf383b250c29/212b7939-3f38-4b3b-a09d-224cca5f7b3d";
-            $wsender->setWebhookUrl($webhookUrl);  
-        }
-        //TESTING
-        $wsender->setWebhookUrl("https://ptbwa.webhook.office.com/webhookb2/8aa8b3b4-8d47-42d2-b104-2ca126f437a3@b328136c-b0be-47fc-bacc-33f01a84367b/IncomingWebhook/620318905ba74747be62bf383b250c29/212b7939-3f38-4b3b-a09d-224cca5f7b3d22");  
-        $wsender->removeWebhookUrl("https://ptbwa.webhook.office.com/webhookb2/8aa8b3b4-8d47-42d2-b104-2ca126f437a3@b328136c-b0be-47fc-bacc-33f01a84367b/IncomingWebhook/620318905ba74747be62bf383b250c29/212b7939-3f38-4b3b-a09d-224cca5f7b3d22"); 
-        $wsender->setWebhookBody(array("text" => implode('<br>', $result)));
-        $this->setNotifier($wsender);
+        // webhook 통지 기능 생략
+        // $wsender = new WebhookSender();
+        // $wsender->loadWebhookUrl();
+        // if($wsender->getWebhookCount() == 0)
+        // {   
+        //     $webhookUrl = "https://ptbwa.webhook.office.com/webhookb2/8aa8b3b4-8d47-42d2-b104-2ca126f437a3@b328136c-b0be-47fc-bacc-33f01a84367b/IncomingWebhook/620318905ba74747be62bf383b250c29/212b7939-3f38-4b3b-a09d-224cca5f7b3d";
+        //     $wsender->setWebhookUrl($webhookUrl);  
+        // }
+        // $wsender->setWebhookBody(array("text" => implode('<br>', $result)));
+        // $this->setNotifier($wsender);
         
         $this->sendNotification(); 
     }
@@ -158,8 +152,7 @@ class MailSender
 
     public function loadNotiEmail()
     {
-        //TEST ADDRESS
-        $this->notiEmail[] = "sehyeon.park@ptbwa.com";
+        $this->notiEmail[] = "ict@ptbwa.com";
     }
 
     public function setNotiEmail($email)
@@ -190,17 +183,16 @@ class MailSender
             $mail->isSMTP();                                            
             $mail->Host       = 'smtp.office365.com';                   
             $mail->SMTPAuth   = true;                                   
-            $mail->Username   = 'sehyeon.park@ptbwa.com'; //TEST ADDRESS          
-            $mail->Password   = 'Ptbw@1234';              //TEST PSW              
+            $mail->Username   = 'dev@ptbwa.com';            
+            $mail->Password   = 'Ptbwa0724!!owns';          
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;         
             $mail->SMTPDebug  = SMTP::DEBUG_SERVER;                     
             $mail->CharSet    = 'UTF-8';
             $mail->Port       = 587;                                    
             
+
             
-            //TEST ADDRESS
-            $mail->setFrom('sehyeon.park@ptbwa.com');
-            $mail->addAddress('sehyeon.park@ptbwa.com', 'Test Name');     
+            $mail->setFrom('dev@ptbwa.com');
             foreach($this->notiEmail as $aEmail)
             {
                 $mail->addAddress($aEmail);
@@ -235,8 +227,7 @@ class WebhookSender
 
     public function loadWebhookUrl()
     {   
-        //TEST WEBHOOK
-        $this->webhookUrls[] = "https://ptbwa.webhook.office.com/webhookb2/8aa8b3b4-8d47-42d2-b104-2ca126f437a3@b328136c-b0be-47fc-bacc-33f01a84367b/IncomingWebhook/620318905ba74747be62bf383b250c29/212b7939-3f38-4b3b-a09d-224cca5f7b3d";
+        $this->webhookUrls[] = "webhook_url";
     }
 
     public function setWebhookUrl($aWebhookUrl)
