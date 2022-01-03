@@ -62,12 +62,14 @@ class SiteStatusChecker
         if(count($this->checkUrls) > 1)
         {
             $mh = curl_multi_init();
-            foreach($this->checkUrls as $key => $value)
+            foreach($this->checkUrls as $num => $aUrl)
             {
-                $ch[$key] = curl_init();
-                curl_setopt($ch[$key], CURLOPT_URL, $value); 
-                curl_setopt($ch[$key], CURLOPT_RETURNTRANSFER, true);
-                curl_multi_add_handle($mh, $ch[$key]);
+                $ch[$num] = curl_init();
+                curl_setopt_array($ch[$num], array(
+                    CURLOPT_URL => $aUrl, 
+                    CURLOPT_RETURNTRANSFER => TRUE,
+                    CURLOPT_SSL_VERIFYPEER => FALSE));
+                curl_multi_add_handle($mh, $ch[$num]);
             }
 
             do {
@@ -88,7 +90,7 @@ class SiteStatusChecker
                                 print_r($info, true)."<br>";
                     $flg = false;
                 }
-                curl_multi_remove_handle($mh, $ch[$key]);
+                curl_multi_remove_handle($mh, $ch[$num]);
             }
             curl_multi_close($mh);
             if($flg)
@@ -100,8 +102,10 @@ class SiteStatusChecker
         else
         {
             $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $checkUrls[0]); 
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt_array($ch, array(
+                CURLOPT_URL => $checkUrls[0], 
+                CURLOPT_RETURNTRANSFER => TRUE,
+                CURLOPT_SSL_VERIFYPEER => FALSE));
             curl_exec($ch);
             $errCode = curl_errno($ch);
             if(!($errCode === 0 && 100 < $info['http_code'] && $info['http_code'] < 400))
