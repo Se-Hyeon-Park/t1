@@ -239,15 +239,17 @@ class ContentsHelper
 
     public function getErrMsg($count)
     {
-        $errMsg = "<br> <h2 style='color:red;'>오류가 %d건 발생했습니다. (%s 기준)</h2> <br>";
-        $this->errMsg = sprintf($errMsg, $count, date("Y-m-d H:i:s"));
+        $errMsg = "<h2>아침 점검 결과 보고서 (%s 기준)</h2>
+                <h2 style='color:red;'>오류가 %d건 발생했습니다. </h2>";
+        $this->errMsg = sprintf($errMsg, date("Y-m-d H:i:s"), $count);
 
         return $this->errMsg;
     }
 
     public function getSuccMsg()
     {
-        $succMsg = "<br> <h2>아침 점검 이상 없습니다. (%s 기준)</h2> <br>";
+        $succMsg = "<h2>아침 점검 결과 보고서 (%s 기준)</h2>
+                <h2>아침 점검 이상 없습니다. </h2>";
         $this->succMsg = sprintf($succMsg, date("Y-m-d H:i:s"));
         
         return $this->succMsg;
