@@ -15,13 +15,13 @@ function main()
 
 class SiteStatusChecker
 {
-    private $checkUrls;
+    private $targetUrls;
 
     private $notifier;
 
     public function loadUrl($targetUrls)
-    {
-        $this->checkUrls = $targetUrls;
+    {   
+        $this->targetUrls = $targetUrls;
     }
 
     public function setNotifier($notifier)
@@ -53,16 +53,20 @@ class SiteStatusChecker
         $urlList = $loader->getUrlList();
         $loader->close();
         $this->loadUrl($urlList); 
-        if(empty($this->checkUrls))
+        if(empty($this->targetUrls))
         {
             throw new Exception("점검 대상 url이 비어 있습니다.");
         }
 
+        date_default_timezone_set("Asia/Seoul");
+        $tableBody = array();
+        $helper = new ContentsHelper();
+
         //점검 curl 실행- 대상이 여러 개일 경우
-        if(count($this->checkUrls) > 1)
+        if(count($this->targetUrls) > 1)
         {
             $mh = curl_multi_init();
-            foreach($this->checkUrls as $num => $aUrl)
+            foreach($this->targetUrls as $num => $aUrl)
             {
                 $ch[$num] = curl_init();
                 curl_setopt_array($ch[$num], array(
@@ -71,31 +75,37 @@ class SiteStatusChecker
                     CURLOPT_SSL_VERIFYPEER => FALSE));
                 curl_multi_add_handle($mh, $ch[$num]);
             }
-
+            
             do {
                 curl_multi_exec($mh, $active);
             } while ($active > 0);
 
-            $flg = true;
-            $errMsg = "<br> 오류가 발생했습니다. <br>";
-            $succMsg = "<br> 아침 점검 이상 없습니다. <br>";
-            foreach($ch as $ahandle)
+            $errCnt = 0;
+            foreach($ch as $num => $aHandle)
             {
-                $info = curl_getinfo($ahandle);
-                $errCode = curl_errno($ahandle);
-                if(!($errCode === 0 && 100 < $info['http_code'] && $info['http_code'] < 400))
+                $info = curl_getinfo($aHandle);
+                $errCode = curl_errno($aHandle);
+                if(!($errCode === 0 && 200 <= $info['http_code'] && $info['http_code'] < 400))
                 {
-                    $result[] = $errMsg.
-                                "curl => ".curl_strerror($errCode)."<br>".
-                                print_r($info, true)."<br>";
-                    $flg = false;
+                    $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), false, $info['total_time']);
+                    $tableBody[] = $helper->getTableBody(false, $num, $values);
+                    $errCnt++;
+                }
+                else
+                {
+                    $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), true, $info['total_time']);
+                    $tableBody[] = $helper->getTableBody(true, $num, $values);
                 }
                 curl_multi_remove_handle($mh, $ch[$num]);
             }
             curl_multi_close($mh);
-            if($flg)
+            if(empty($errCnt))
             {
-                $result[] = $succMsg;
+                $result[] = $helper->getSuccMsg();
+            }
+            else
+            {
+                $result[] = $helper->getErrMsg($errCnt);
             }
         }
         //점검 curl 실행- 대상이 하나일 경우
@@ -103,34 +113,45 @@ class SiteStatusChecker
         {
             $ch = curl_init();
             curl_setopt_array($ch, array(
-                CURLOPT_URL => $checkUrls[0], 
+                CURLOPT_URL => $this->targetUrls[0], 
                 CURLOPT_RETURNTRANSFER => TRUE,
                 CURLOPT_SSL_VERIFYPEER => FALSE));
             curl_exec($ch);
+            $info = curl_getinfo($ch);
             $errCode = curl_errno($ch);
-            if(!($errCode === 0 && 100 < $info['http_code'] && $info['http_code'] < 400))
+
+            if(!($errCode === 0 && 200 <= $info['http_code'] && $info['http_code'] < 400))
             {
-                $result[] = $errMsg.
-                            "curl => ".curl_strerror($errCode)."<br>".
-                            print_r($info, true)."<br>";
+                $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), "false", $info['total_time']);
+                $tableBody[] = $helper->getTableBody(false, 0, $values);
+                $errCnt++;
+                $result[] = $helper->getErrMsg($errCnt);
+
             }
             else
             {
-                $result[] = $succMsg;
+                $result[] = $helper->getSuccMsg();
+                $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), "true", $info['total_time']);
+                $tableBody[] = $helper->getTableBody(true, 0, $values);
             }
+
             curl_close($ch);
-            
         }
+        
+        $result[] = $helper->getTableStart();
+        $result[] = implode('', $tableBody);
+        $result[] = $helper->getTableEnd();
 
         //결과 메일 통지
-        $msender = new MailSender();
-        $msender->loadNotiEmail();
-        if($msender->getNotiEmailCount() == 0)
+        $mSender = new MailSender();
+        $mSender->loadNotiEmail();
+        if($mSender->getNotiEmailCount() == 0)
         {
-            $msender->setNotiEmail("ict@ptbwa.com");
+            $mSender->setNotiEmail("ict@ptbwa.com");
         }
-        $msender->setEmailBody(implode('<br>', $result));
-        $this->setNotifier($msender);
+        $mSender->setEmailSubject($helper->getEmailSubject());
+        $mSender->setEmailBody(implode('', $result));
+        $this->setNotifier($mSender);
 
         // webhook 통지 기능 생략
         // $wsender = new WebhookSender();
@@ -149,9 +170,98 @@ class SiteStatusChecker
 }
 
 
+class ContentsHelper
+{
+    private $emailSubject;
+    private $tableStart;
+    private $tableBody;
+    private $tableEnd;
+    private $errMsg;
+    private $succMsg;
+
+    public function getEmailSubject()
+    {
+        $this->emailSubject = sprintf("[PTBWA-ICT][아침 점검] 점검 결과 보고서 (%s)", date("Y-m-d"));
+        return $this->emailSubject;
+    }
+
+    public function getTableStart()
+    {
+        $this->tableStart = 
+        "<table border='1' cellspacing='0' cellpadding='0' style='border-collapse:collapse; border-style:none;'>
+            <tbody>
+                <tr>
+                    <th>num</th>
+                    <th>url</th>
+                    <th>redirect_url</th>
+                    <th>curl_errno</th>
+                    <th>http_code</th>
+                    <th>exec_date</th>
+                    <th>result</th>
+                    <th>total_time</th>
+                </tr>";
+
+        return $this->tableStart;
+    }
+
+    public function getTableBody($flg, $num, $values)
+    {
+        $tableBody = array();
+        if($flg)
+        {
+            $tableBody[] = "<tr>
+                                <td>$num</td>";
+        }
+        else
+        {
+            $tableBody[] = "<tr style='color:red; font-weight:bold'>
+                                <td >$num</td>";
+        }
+        
+        foreach($values as $val)
+        {
+            $tableBody[] = "<td>$val</td>";
+        }
+        $tableBody[] = "</tr>";
+        $this->tableBody = implode('', $tableBody);
+
+        return $this->tableBody;
+    }
+
+    public function getTableEnd()
+    {
+        $tableEnd = "</tbody>
+                    </table>";
+        $this->tableEnd = $tableEnd;
+
+        return $this->tableEnd;
+    }
+
+    public function getErrMsg($count)
+    {
+        $errMsg = "<br> <h2 style='color:red;'>오류가 %d건 발생했습니다. (%s 기준)</h2> <br>";
+        $this->errMsg = sprintf($errMsg, $count, date("Y-m-d H:i:s"));
+
+        return $this->errMsg;
+    }
+
+    public function getSuccMsg()
+    {
+        $succMsg = "<br> <h2>아침 점검 이상 없습니다. (%s 기준)</h2> <br>";
+        $this->succMsg = sprintf($succMsg, date("Y-m-d H:i:s"));
+        
+        return $this->succMsg;
+    }
+
+
+}
+
+
+
 class MailSender
 {
     private $notiEmail;
+    private $subject;
     private $body;
 
     public function loadNotiEmail()
@@ -178,6 +288,11 @@ class MailSender
         $this->body = $body;
     }
 
+    public function setEmailSubject($subject)
+    {
+        $this->subject = $subject;
+    }
+
     public function sendNotiEmail()
     {
         $mail = new PHPMailer(true);
@@ -188,7 +303,7 @@ class MailSender
             $mail->Host       = 'smtp.office365.com';                   
             $mail->SMTPAuth   = true;                                   
             $mail->Username   = 'dev@ptbwa.com';            
-            $mail->Password   = 'Ptbwa0724!!owns';          
+            $mail->Password   = 'Ptbwa0724!!owns';
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;         
             $mail->SMTPDebug  = SMTP::DEBUG_SERVER;                     
             $mail->CharSet    = 'UTF-8';
@@ -202,8 +317,8 @@ class MailSender
                 $mail->addAddress($aEmail);
             }
 
-            $mail->isHTML(true);                                  
-            $mail->Subject = sprintf("%d년 %d월 %d일 아침 점검 보고", date("Y"), date("m"), date("d"));
+            $mail->isHTML(true);            
+            $mail->Subject = $this->subject;
             $mail->Body    = $this->body;
             
             $mail->send();
@@ -281,11 +396,11 @@ class WebhookSender
                 curl_multi_exec($mh, $active);
             } while ($active > 0);
 
-            foreach($ch as $ahandle)
+            foreach($ch as $aHandle)
             {
-                $info = curl_getinfo($ahandle);
-                $errCode = curl_errno($ahandle);
-                if(curl_errno($ahandle))
+                $info = curl_getinfo($aHandle);
+                $errCode = curl_errno($aHandle);
+                if(curl_errno($aHandle))
                 {
                     throw new Exception("could not be sent. Webhook Error:(".curl_strerror($errCode).$info.")");
                     $flg = false;
