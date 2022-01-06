@@ -87,14 +87,14 @@ class SiteStatusChecker
                 $errCode = curl_errno($aHandle);
                 if(!($errCode === 0 && 200 <= $info['http_code'] && $info['http_code'] < 400))
                 {
-                    $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), false, $info['total_time']);
-                    $tableBody[] = $helper->getTableBody(false, $num, $values);
+                    $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), "false", $info['total_time']);
+                    $tableBody[] = $helper->getTableBody(false, ($num+1), $values);
                     $errCnt++;
                 }
                 else
                 {
-                    $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), true, $info['total_time']);
-                    $tableBody[] = $helper->getTableBody(true, $num, $values);
+                    $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), "true", $info['total_time']);
+                    $tableBody[] = $helper->getTableBody(true, ($num+1), $values);
                 }
                 curl_multi_remove_handle($mh, $ch[$num]);
             }
@@ -123,7 +123,7 @@ class SiteStatusChecker
             if(!($errCode === 0 && 200 <= $info['http_code'] && $info['http_code'] < 400))
             {
                 $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), "false", $info['total_time']);
-                $tableBody[] = $helper->getTableBody(false, 0, $values);
+                $tableBody[] = $helper->getTableBody(false, 1, $values);
                 $errCnt++;
                 $result[] = $helper->getErrMsg($errCnt);
 
@@ -132,7 +132,7 @@ class SiteStatusChecker
             {
                 $result[] = $helper->getSuccMsg();
                 $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), "true", $info['total_time']);
-                $tableBody[] = $helper->getTableBody(true, 0, $values);
+                $tableBody[] = $helper->getTableBody(true, 1, $values);
             }
 
             curl_close($ch);
