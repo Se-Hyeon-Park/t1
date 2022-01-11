@@ -1,5 +1,16 @@
 <?php
-require_once 'vendor/autoload.php';
+if (file_exists('vendor/autoload.php')){
+    echo "passed";
+    require_once 'vendor/autoload.php';
+}
+else
+{   
+    echo "non-passed";
+    require_once 'vendor/phpmailer/phpmailer/src/Exception.php';
+    require_once 'vendor/phpmailer/phpmailer/src/PHPMailer.php';
+    require_once 'vendor/phpmailer/phpmailer/src/SMTP.php';
+}
+
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
