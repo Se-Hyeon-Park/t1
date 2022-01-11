@@ -1,11 +1,10 @@
 <?php
-if (file_exists('vendor/autoload.php')){
-    echo "passed";
+if (file_exists('vendor/autoload.php'))
+{
     require_once 'vendor/autoload.php';
 }
 else
 {   
-    echo "non-passed";
     require_once 'vendor/phpmailer/phpmailer/src/Exception.php';
     require_once 'vendor/phpmailer/phpmailer/src/PHPMailer.php';
     require_once 'vendor/phpmailer/phpmailer/src/SMTP.php';
