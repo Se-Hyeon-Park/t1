@@ -1,5 +1,29 @@
 {
+    "name": "ptbwa/site-checker",
+    "type": "project",
+    "description": "SiteChecker is a url connection checking class and sending notification class",
+    "authors": [
+        {
+            "name": "Hyeonseo Yang",
+            "email": "hyeonseo.yang@ptbwa.com",
+            "role" : "Leader"
+        },
+        {
+            "name": "Sehyeon Park",
+            "email": "sehyeon.park@ptbwa.com",
+            "role" : "Developer"
+        }
+    ],
+    "support" : {
+        "readme" : "http://freezer:30000/root/ptbwa-infra/-/blob/morning_sword/README.md"
+    },
     "require": {
+        "php": ">=5.5.0",
         "phpmailer/phpmailer": "^6.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "PHPMailer\\PHPMailer\\": "vendor/phpmailer/phpmailer/src/"
+        }
     }
 }
