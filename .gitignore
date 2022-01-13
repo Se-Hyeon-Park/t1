@@ -1,0 +1,3 @@
+#컴포저 생성 파일 제외
+SiteStatusChecker/vendor/
+SiteStatusChecker/composer.lock
