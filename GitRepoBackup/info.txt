@@ -1,2 +1,2 @@
-Backup Repository Urla={https://github.com/user/originalRepo.git}
+Backup Repository Url={https://github.com/user/originalRepo.git}
 Target Repository Url={https://github.com/user/backupRepo.git}
