@@ -91,6 +91,7 @@ class SiteStatusChecker
             } while ($active > 0);
 
             $errCnt = 0;
+            $log_msg = array();
             foreach($ch as $num => $aHandle)
             {
                 $info = curl_getinfo($aHandle);
@@ -99,6 +100,7 @@ class SiteStatusChecker
                 {
                     $values = array($info['url'], $info['redirect_url'], $errCode, $info['http_code'], date('ymd H:i:s'), "false", $info['total_time']);
                     $tableBody[] = $helper->getTableBody(false, ($num+1), $values);
+                    $log_msg[] = $info;
                     $errCnt++;
                 }
                 else
@@ -115,6 +117,8 @@ class SiteStatusChecker
             }
             else
             {
+                $recorder = new LogRecorder();
+                $recorder->record($log_msg);
                 $result[] = $helper->getErrMsg($errCnt);
             }
         }
@@ -129,6 +133,7 @@ class SiteStatusChecker
             curl_exec($ch);
             $info = curl_getinfo($ch);
             $errCode = curl_errno($ch);
+            $errCnt = 0;
 
             if(!($errCode === 0 && 200 <= $info['http_code'] && $info['http_code'] < 400))
             {
@@ -136,6 +141,9 @@ class SiteStatusChecker
                 $tableBody[] = $helper->getTableBody(false, 1, $values);
                 $errCnt++;
                 $result[] = $helper->getErrMsg($errCnt);
+                $recorder = new LogRecorder();
+                $log_msg = $info;
+                $recorder->record($log_msg);
 
             }
             else
@@ -499,6 +507,26 @@ class UrlReader
     {
         $this->link -> close();
     }
+
+}
+
+
+class LogRecorder 
+{
+    function record($log) 
+    {
+        if(!empty($log))
+        {
+            $dirName="errLog";
+            if(empty(is_dir("$dirName/"))) {
+                mkdir("$dirName/");
+            }
+            date_default_timezone_set('Asia/Seoul');
+            $timestamp= date('ymdHis');
+            file_put_contents("$dirName/$dirName$timestamp.txt",print_r($log,1));
+        }
+    }
+
 
 }
 
